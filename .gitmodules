@@ -1,0 +1,3 @@
+[submodule "input/tensorflow-speech-recognition-challenge/rpivoice"]
+	path = input/tensorflow-speech-recognition-challenge/rpivoice
+	url = git@diana2:~/git/rpivoice.git
