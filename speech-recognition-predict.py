@@ -49,7 +49,7 @@ samples, sample_rate = librosa.load(filepath + '/yes/caz-yes.wav', sr = SAMPLE_R
 index, prob = tflite_predict(samples, sample_rate)
 print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
 
-rec_duration = 0.5
+rec_duration = 0.25
 sample_rate = 16000
 num_channels = 1
 
@@ -82,16 +82,18 @@ def sd_callback(rec, frames, time, status):
   rec, new_fs = decimate(rec, sample_rate, SAMPLE_RATE)
 
   # Save recording onto sliding window
-  window[:len(window)//2] = window[len(window)//2:]
-  window[len(window)//2:] = rec
-  index, prob = tflite_predict(window, new_fs)
+  window[:len(window)//4] = window[len(window)//4*1:len(window)//4*2]
+  window[len(window)//4*1:len(window)//4*2] = window[len(window)//4*2:len(window)//4*3]
+  window[len(window)//4*2:len(window)//4*3] = window[len(window)//4*3:]
+  window[len(window)//4*3:] = rec
+  index, prob = tflite_predict(window, SAMPLE_RATE)
   if prob[np.argmax(prob)] > 0.85:
     print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
     window = np.zeros(len(window), dtype='float32')
 
 # main start here
 # create sliding window
-window = np.zeros(int(rec_duration * SAMPLE_RATE) * 2, dtype='float32')
+window = np.zeros(int(rec_duration * SAMPLE_RATE) * 4, dtype='float32')
 
 # Start streaming from microphone
 with sd.InputStream(channels=num_channels,
