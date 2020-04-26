@@ -1,6 +1,8 @@
 import librosa
 import numpy as np
 from tflite_runtime.interpreter import Interpreter
+import sounddevice as sd
+import scipy.signal
 
 filepath='input/voice-commands/caz'
 SAMPLE_RATE = 8000
@@ -46,3 +48,55 @@ print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
 samples, sample_rate = librosa.load(filepath + '/yes/caz-yes.wav', sr = SAMPLE_RATE)
 index, prob = tflite_predict(samples, sample_rate)
 print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
+
+rec_duration = 0.5
+sample_rate = 16000
+num_channels = 1
+
+# Decimate (filter and downsample)
+def decimate(signal, old_fs, new_fs):
+    # Check to make sure we're downsampling
+    if new_fs > old_fs:
+        print("Error: target sample rate higher than original")
+        return signal, old_fs
+
+    # We can only downsample by an integer factor
+    dec_factor = old_fs / new_fs
+    if not dec_factor.is_integer():
+        print("Error: can only decimate by integer factor")
+        return signal, old_fs
+
+    # Do decimation
+    resampled_signal = scipy.signal.decimate(signal, int(dec_factor))
+
+    return resampled_signal, new_fs
+
+# This gets called every 0.5 seconds
+def sd_callback(rec, frames, time, status):
+  global window
+
+  # Remove 2nd dimension from recording sample
+  rec = np.squeeze(rec).astype('float32')
+
+  # Resample down to SAMPLE_RATE
+  rec, new_fs = decimate(rec, sample_rate, SAMPLE_RATE)
+
+  # Save recording onto sliding window
+  window[:len(window)//2] = window[len(window)//2:]
+  window[len(window)//2:] = rec
+  index, prob = tflite_predict(window, new_fs)
+  if prob[np.argmax(prob)] > 0.85:
+    print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
+    window = np.zeros(len(window), dtype='float32')
+
+# main start here
+# create sliding window
+window = np.zeros(int(rec_duration * SAMPLE_RATE) * 2, dtype='float32')
+
+# Start streaming from microphone
+with sd.InputStream(channels=num_channels,
+                    samplerate=sample_rate,
+                    blocksize=int(sample_rate * rec_duration),
+                    callback=sd_callback):
+  while True:
+    pass
