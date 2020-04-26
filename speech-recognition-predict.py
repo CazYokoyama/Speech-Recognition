@@ -4,7 +4,7 @@ from tflite_runtime.interpreter import Interpreter
 import sounddevice as sd
 import scipy.signal
 
-filepath='input/voice-commands/caz'
+train_audio_path = 'input/tensorflow-speech-recognition-challenge/rpivoice/xcsoar/'
 SAMPLE_RATE = 8000
 
 # load command list, best_model.txt
@@ -37,15 +37,11 @@ def tflite_predict(voice, sr):
     index=np.argmax(output_data[0])
     return index, output_data[0]
 
-samples, sample_rate = librosa.load(filepath + '/stop/caz-stop.wav', sr = SAMPLE_RATE)
+samples, sample_rate = librosa.load(train_audio_path + 'stop/caz-stop-plantronics.wav', sr = SAMPLE_RATE)
 index, prob = tflite_predict(samples, sample_rate)
 print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
 
-samples, sample_rate = librosa.load(filepath + '/learn/caz-learn.wav', sr = SAMPLE_RATE)
-index, prob = tflite_predict(samples, sample_rate)
-print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
-
-samples, sample_rate = librosa.load(filepath + '/yes/caz-yes.wav', sr = SAMPLE_RATE)
+samples, sample_rate = librosa.load(train_audio_path + 'yes/caz-yes-plantronics.wav', sr = SAMPLE_RATE)
 index, prob = tflite_predict(samples, sample_rate)
 print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
 
