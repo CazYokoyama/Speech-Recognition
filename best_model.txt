@@ -1,3 +1,12 @@
-learn
+eight
+five
+four
+nine
+one
+seven
+six
 stop
+three
+two
 yes
+zero
