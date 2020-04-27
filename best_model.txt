@@ -1,3 +1,6 @@
-learn
+down
+left
+right
 stop
+up
 yes
