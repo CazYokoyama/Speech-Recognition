@@ -6,6 +6,7 @@ import scipy.signal
 
 train_audio_path = 'input/tensorflow-speech-recognition-challenge/rpivoice/xcsoar/'
 SAMPLE_RATE = 8000
+THRESH_HOLD = 0.01
 
 # load command list, best_model.txt
 def load_labels(path):
@@ -27,6 +28,19 @@ input_data = np.array(np.random.random_sample(input_shape), dtype=np.float32)
 interpreter.set_tensor(input_details[0]['index'], input_data)
 
 interpreter.invoke()
+
+def no_preamble(voice):
+    thresh_hold = max(abs(voice)) * THRESH_HOLD
+    i = 0
+    while i < len(voice):
+        if abs(voice[i]) >= thresh_hold:
+            size = voice.size
+            voice = voice[i:]
+            voice = np.resize(voice, size)
+            voice[(size - i):] = np.zeros(i)
+            break
+        i += 1
+    return voice
 
 def tflite_predict(voice, sr):
     if sr != SAMPLE_RATE:
@@ -82,7 +96,7 @@ def sd_callback(rec, frames, time, status):
   window[len(window)//4*1:len(window)//4*2] = window[len(window)//4*2:len(window)//4*3]
   window[len(window)//4*2:len(window)//4*3] = window[len(window)//4*3:]
   window[len(window)//4*3:] = rec
-  index, prob = tflite_predict(window, SAMPLE_RATE)
+  index, prob = tflite_predict(no_preamble(window), SAMPLE_RATE)
   if prob > 0.85:
     print('%s %.2f' % (labels[index], prob))
     window = np.zeros(len(window), dtype='float32')
