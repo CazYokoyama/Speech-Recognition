@@ -35,15 +35,15 @@ def tflite_predict(voice, sr):
     interpreter.invoke()
     output_data = interpreter.get_tensor(output_details[0]['index'])
     index=np.argmax(output_data[0])
-    return index, output_data[0]
+    return index, output_data[0][index]
 
 samples, sample_rate = librosa.load(train_audio_path + 'stop/caz-stop-plantronics.wav', sr = SAMPLE_RATE)
 index, prob = tflite_predict(samples, sample_rate)
-print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
+print('%s %.2f' % (labels[index], prob))
 
 samples, sample_rate = librosa.load(train_audio_path + 'yes/caz-yes-plantronics.wav', sr = SAMPLE_RATE)
 index, prob = tflite_predict(samples, sample_rate)
-print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
+print('%s %.2f' % (labels[index], prob))
 
 rec_duration = 0.25
 sample_rate = 16000
@@ -83,8 +83,8 @@ def sd_callback(rec, frames, time, status):
   window[len(window)//4*2:len(window)//4*3] = window[len(window)//4*3:]
   window[len(window)//4*3:] = rec
   index, prob = tflite_predict(window, SAMPLE_RATE)
-  if prob[np.argmax(prob)] > 0.85:
-    print('%s %.2f %.2f %.2f' % (labels[index], prob[0], prob[1], prob[2]))
+  if prob > 0.85:
+    print('%s %.2f' % (labels[index], prob))
     window = np.zeros(len(window), dtype='float32')
 
 # main start here
