@@ -81,9 +81,11 @@ def decimate(signal, old_fs, new_fs):
 
     return resampled_signal, new_fs
 
+recording = 0
+
 # This gets called every 0.5 seconds
 def sd_callback(rec, frames, time, status):
-  global window
+  global window, recording
 
   # Remove 2nd dimension from recording sample
   rec = np.squeeze(rec).astype('float32')
@@ -91,15 +93,18 @@ def sd_callback(rec, frames, time, status):
   # Resample down to SAMPLE_RATE
   rec, new_fs = decimate(rec, sample_rate, SAMPLE_RATE)
 
-  # Save recording onto sliding window
-  window[:len(window)//4] = window[len(window)//4*1:len(window)//4*2]
-  window[len(window)//4*1:len(window)//4*2] = window[len(window)//4*2:len(window)//4*3]
-  window[len(window)//4*2:len(window)//4*3] = window[len(window)//4*3:]
-  window[len(window)//4*3:] = rec
-  index, prob = tflite_predict(no_preamble(window), SAMPLE_RATE)
-  if prob > 0.85:
-    print('%s %.2f' % (labels[index], prob))
-    window = np.zeros(len(window), dtype='float32')
+  if recording > 0:
+    window[len(window)//4*recording:len(window)//4*(recording+1)] = rec
+    recording += 1
+    if recording == 3:
+      index, prob = tflite_predict(no_preamble(window), SAMPLE_RATE)
+      if prob > 0.85:
+        print('%s %.2f' % (labels[index], prob))
+        window = np.zeros(len(window), dtype='float32')
+      recording = 0 # not recording
+  elif max(abs(rec)) > 0.02: # not silent
+    window[:len(window)//4] = rec
+    recording = 1
 
 # main start here
 # create sliding window
